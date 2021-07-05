@@ -76,6 +76,7 @@ As is usual with malware of any kind, we will see a lot of layers of packing and
 
 
 The first packer's code seems fairly concise:
+
 ![3070191d0b15cd2642e828107df9d2bd.png](./_resources/c173ab511a9d45b2bb7b839a81d14a05.png)
 
 ### unpacking <a name="unpacking1"></a>
@@ -139,7 +140,9 @@ and
 ![37f6a1c50c4dc2f0420e324489ce89d7.png](./_resources/6f9a279d17ce4258899b70025c822a97.png)
 
 Looking at the starting function we can also see something slightly unusual. A call to a pointer inside of a pointer array:
+
 ![f25db5172c0f4be8e3ec13e2f7de70a0.png](./_resources/0af63fbb60cd4a5fb3f7c72101313b63.png)
+
 ![bfe7c12e172bd1d111c6a579d3705a7f.png](./_resources/7c9e168e6cb944da8ccc2ce6729d2a14.png)
 
 The addresses give away that they're likely windows dll functions. Inside of x64dbg we can create an array of the data at that address and get the full list of functions:
@@ -354,10 +357,12 @@ Looking through these code paths, we can conclude that nothing actually happens 
 
 ## Mutex <a name="mutex"></a>
 The very first thing it will do is create/check a mutex to confirm the malware hasn't been executed yet:
+
 ![4d2a47d1d8738fb67e321a554ca34a7f.png](./_resources/3fde3308896947edb73b2b138c32b137.png)
 
 ## Commandline Arguments <a name="cli"></a>
 After confirming this is the first run it gets a list of command line arguments using `GetCommandLineW`. Having obtained a list of arguments, if any, it proceeds to decrypt all its predefined argument strings and comparing them to the list received from the previous function call:
+
 ![1a17d7eb25e4b1524aa3a69fde3278be.png](./_resources/1ec3702a9be74589a18b8c2788efca3b.png)
  
 The available flags in this version are:
@@ -388,6 +393,7 @@ Arriving at the main functionality of the ransomware payload. In here Conti will
 > If the `-p` flag is provided it limits the amount of threads to 1 and uses the value given after the `-p` as input for `FindFirstFile`. This means the `-p` flag can be used to encrypt an entire disk, a single file or a directory.
 
 The encryption function starts by loading a statically inserted and readily available RSA key using the Microsoft crypto library. RSA key shown here:
+
 ![52ea76d25d048706eb6769e16fb36813.png](./_resources/e20e55a17891406eae90d37db659b96e.png)
 
 After this it will start looping through directories looking for files to encrypt, but before I get to that I need to digress.
@@ -518,6 +524,7 @@ If the file extension matches one of the ~20 disk image extensions it will set `
 If the file name matches none of these extensions it will check if the file is larger than `0x500000` bytes and if that's the case set `magic1` to `0x25` and `magic2` to `0x32`. If it's between `0x100000` and `0x500000`, set `magic1` to `0x26` and `magic2` to `0x0`. And the default case sets `magic1` to `0x24` and `magic2` to `0x0`.
 
 Following this check it will write the RSA encrypted randomly generated key and the file_info state to the end of the file it's about to encrypt. The encryption takes place using the `Salsa20` encryption algorithm. After encryption it will load the string ".KCWTT", which is ironically one of the only strings not obfuscated, and append it to the original filename to indicate it's infected:
+
 ![97401e9d42b4d179d5966738075e463f.png](./_resources/d25a917a4dc249d6aedbd864b3a2e75b.png)
 
 ## Network <a name="network"></a>
@@ -550,6 +557,7 @@ The logging functionality that Conti comes with tells us that this thread is sup
 This thread once again works using the same blocking mechanism that all the other threads use while waiting for data input. The second a network share gets identified that is available on one of the local IPs found by the ARP scan it gets passed to this function. The function then uses `IOCP programming` to pass handles to open shares back to the encryption thread that was started at the beginning of the payload.
 
 To get these handles the malware it creates a linked list of network data objects that contains sockets, addresses and completion port handles. For each share passed to the function it will create a socket using `WSASocketW` and have it assigned a random port. To this it will bind a completion port using `CreateIoCompletionPort` for use in the asynchronous passing of data using overlapped data structs. It will then queue a timer using `CreateTimerQueueTimer` to queue a call to `PostQueuedCompletionStatus` which passes a key value of `2` back to the `GetQueuedCompletionStatus` function. It seems to use this combination only to guide the control flow for this function: 
+
 ![33076e2763c5101d4200d233017a074d.png](./_resources/d0c8cade37e5411dab9884fe921c4358.png)
 
 From each of the created sockets it will attempt to connect to the remote share using `ConnectEx`.
