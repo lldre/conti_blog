@@ -1,6 +1,6 @@
 After reading about a devestating attack on the Irish Health Services (article [here](https://www.irishtimes.com/news/health/cyberattack-on-hse-scale-of-damage-on-systems-will-not-be-known-for-days-1.4565621)), I decided to take a deeper look at what makes the Conti ransomware so devestating. The malware, that some consider to be the [successor](https://www.bleepingcomputer.com/news/security/ryuk-successor-conti-ransomware-releases-data-leak-site/) to the ryuk ransomware has been wreaking havoc on organisations over the last year, infecting nearly 200 companies. The ransomware is a classic example of a Ransomware-as-a-Service (RaaS) employing highly skilled operators to break into big big company networks and execute the payload in exchange for a share of the profit. 
 
-Some research has been done into Conti such as [this detailed write-up](https://blogs.vmware.com/security/2020/07/tau-threat-discovery-conti-ransomware.html) by the folks over at theCarbon Black Threat Analysis Unit (TAU). However, the sample they analysed and the sample under analysis in this blog differ significantly in a few places, indicating we might be dealing with an updated version. 
+Some research has been done into Conti such as [this detailed write-up](https://blogs.vmware.com/security/2020/07/tau-threat-discovery-conti-ransomware.html) by the folks over at the Carbon Black Threat Analysis Unit (TAU). However, the sample they analysed and the sample under analysis in this blog differ significantly in a few places, indicating we might be dealing with an updated version. 
 
 I hope this blog provides some key insights to researchers and incident response teams that encounter this version of Conti.
 
@@ -34,12 +34,12 @@ I hope this blog provides some key insights to researchers and incident response
 Hashes
 ```
 Binary
-md5    : 8fe7bfef6ebc53e947561d35555cd24
+md5    : 8fe7bfef6ebc53e9047561d35555cd24
 sha256 : 707b752f6bd89d4f97d08602d0546a56d27acfe00e6d5df2a2cb67c5e2eeee30
 
 Dropped payload
-md5   : e396ec78e69d9464900b33989b2cbf52
-sha256: 52cdd111a81bb7b55b1bab28d19014fda0cfc323c11dcb6e9f8e60112eac8b1d
+md5    : e396ec78e69d9464900b33989b2cbf52
+sha256 : 52cdd111a81bb7b55b1bab28d19014fda0cfc323c11dcb6e9f8e60112eac8b1d
 ```
 
 IOCs
@@ -576,12 +576,14 @@ The full pseudocode for deletion is:
 IWbemLocator = CoCreateInstance(wbemprox_dll_clsid, 0, 1, IID_IWbemLocator_interface_clsid)
 
 if x64_system:
+
 	IWbemContext = CoCreateInstance(fastprox_dll_clsid, 0, 1, IID_IWbemContext_interface_clsid)
 	IWbemContext::SetValue("_ProviderArchitecture", 0, 64)
 
 
 IWbemServices = IWbemLocator::ConnectServer("ROOT\\CIMV2", ......)
 for copy in IWbemServices::ExecQuery("WQL", "SELECT * FROM Win32_ShadowCopy", ......):
+
 	ID = IWbemClassObject::Get("ID", .......)
 	wsprintfw(cmdline, "cmd.exe /c C:\Windows\System32\wbem\WMIC.exe shadowcopy where "ID='%s'" delete", ID)
 		
