@@ -76,12 +76,12 @@ We will see later that logging output is a central component of the entire malic
 Decrypting this stage is as simple as breaking on the `call esi` instruction after decrypting the payload.
 
 ## Stage 2 <a name="stage2"></a>
-Open the unpacked and dumped region in ida and let's start looking for things that will let us identify an infected system.
+Open the unpacked and dumped region in IDA and let's start looking for things that will let us identify an infected system.
 
 ### Imports <a name="imports"></a>
 As the code we're looking at was decrypted from a blob and loaded into an already running process, the windows loader hasn't been triggered to insert the addresses of any imported functions. Knowing this, the malware needs to fix the imports themselves dynamically. One common method that also adds a layer of obfuscation is through the use of API name hashes. 
 
-In the very first function that gets called inside of the unpacked code we can already see a pattern that could indicate that api hashing is used to locate system functions:
+In the very first function that gets called inside of the unpacked code we can already see a pattern that could indicate that API hashing is used to locate system functions:
 
 ![6b94ae99c1398d90235a089b6757a862.png](./_resources/a0a3c1e166c14e1facc7db1d2be8d767.png)
 
@@ -118,12 +118,12 @@ All very indicative of image loading shenanigans. We can pretty much disregard m
 ## Stage 3 <a name="stage3"></a>
 As we were able to dump the embedded pe file, we continue our analysis in IDA. To get IDA to analyse this file properly we need to disable auto-analysis when loading the file. To start IDA's analysis off on the right track we need to create a function where the previous packer was going to jump at address `+0x27B0`. This lets IDA start from the real start function rather than the start defined in the exports. As it uses hard-coded pointers we also need to rebase the binary to where it expects to be using `edit -> Segments -> Rebase Program`.
 
-### cleaning up the mess <a name="#cleaning_up"></a>
+### Tidying Up <a name="#cleaning_up"></a>
 After properly loading the binary we're left with a fairly messy binary with no real indicators of what's going on. We get no imports, exports or strings except for these 2 (an indicator that we're looking at the fairly new Conti v3 rather than the old Conti v2):
 
 ![918eccd12fa622cc20a03aa2793e4409.png](./_resources/9003e8e793664f5f98ddf246e98a7637.png)
 
-and
+and:
 
 ![37f6a1c50c4dc2f0420e324489ce89d7.png](./_resources/6f9a279d17ce4258899b70025c822a97.png)
 
@@ -137,7 +137,7 @@ The addresses give away that they're likely windows dll functions. Inside of x64
 
 ![201934cb3f4bc4b14efb34271f6fb4f0.png](./_resources/fadd1f6ffd0d42beb8811b79df908ace.png)
 
-After fixing this up in ida, our job becomes a lot easier. One thing to note is that this packer stage uses no api hashing, which is rather odd as we will see that every other stage including the payload does use it.
+After fixing this up in ida, our job becomes a lot easier. One thing to note is that this packer stage uses no API hashing, which is rather odd as we will see that every other stage including the payload does use it.
 
 ### Diving in <a name="diving in"></a>
 At the address the previous unpacker dropped us off at we see a pointer to another `PE` file get loaded. Looking at the next function with, what appears to be, the main logic we see a lot of operations on the PE file's headers. The first real thing to note, besides the fact that it's probably another loader, is that it is incredibly clean code. The code's structure and perfect error checking are very unlike what you would expect from a stealthy quick and dirty malware binary.
@@ -183,7 +183,7 @@ The first step to understanding the payload is getting rid of the multiple layer
 
 ![3fd807c297477cc0ed10bbf33553f198.png](./_resources/c0f897c192554060b8fd96ffe2aa9b3e.png) 
 
-### strings <a name="strings"></a>
+### Strings <a name="strings"></a>
 Starting with the string obfuscation we can see that each string comes with its own unique deobfuscation function, rather than 1 generic function. Each function doesn't differ much in logic, just the used registers and increment/decrement values change.
 
 As each function is unique and there's also a lot of inlined versions, it's going to be difficult to automatically deobfuscate them. Using a debugger to deobfuscate them is going to be incredibly laborious as you would have to break after each inlined function and on each unique function. A script is clearly the way to go here. This script should perform the following things:
@@ -201,10 +201,10 @@ Using this method we can identify a few solid binary search strings such as the 
 search_strings = ["0x8A 0x44 ? ? 0x0F 0xB6 ?", "0x8A ? ? ? ? ? ? 0x0F 0xB6 ?", "0x8A ? ? ? ? ? ? 0xB9 ?"]
 
 ```
-We will use these strings in combination with the `idc.find_binary()` api to locate most of the functions.
+We will use these strings in combination with the `idc.find_binary()` API to locate most of the functions.
 
 #### Input Bytes <a name="input_bytes"></a>
-The second piece of the puzzle that is required to automate the deobfuscation is harvesting the input bytes pushed to each of their respective deobfuscation functions. Getting these bytes into our idapython requires a bit more work.
+The second piece of the puzzle that is required to automate the deobfuscation is harvesting the input bytes pushed to each of their respective deobfuscation functions. Getting these bytes into our IDAPython requires a bit more work.
 
 Looking through a lot of the byte pushes we can tell most strings start off with a `0` byte push, but this isn't always the case. Not only that, but every now and then you have a string that has `0` byte pushes in the middle. Identifying the end of the pushes also appears to be finicky.
 
@@ -228,8 +228,8 @@ def harvest(start, end):
 ```
 
 
-#### Executing the obfuscator <a name="obfuscator"></a>
-At this point we have the addresses and input for most if not all of conti's obfuscated strings. All that rests us now is to run each unique deobfuscation function with the right input through an emulator and print the output. Running the emulator from inside idapython allows us to write our results back into the database, keeping everything in 1 place. For this let's use the `flare-emu` emulator by fireeye: [flare-emu](https://github.com/fireeye/flare-emu).
+#### Executing The Obfuscator <a name="obfuscator"></a>
+At this point we have the addresses and input for most if not all of conti's obfuscated strings. All that rests us now is to run each unique deobfuscation function with the right input through an emulator and print the output. Running the emulator from inside IDAPython allows us to write our results back into the database, keeping everything in 1 place. For this let's use the `flare-emu` emulator by fireeye: [flare-emu](https://github.com/fireeye/flare-emu).
 
 To emulate each function we need to take the following steps:
 * Set up an emulator instance
@@ -273,16 +273,16 @@ For a complete overview of the strings I was able to dump see [Appendix A](#appe
 
 
 ### API hashes <a name="api_hashes"></a>
-Again we are faced with an api lookup by hash type of obfuscation. What's interesting is that the way it is implemented quite significantly differs from the one in the packer. This indicates to me that either the packer was borrowed code or a big distributed team is working on different parts of the malware at the same time. 
+Again we are faced with an API lookup by hash type of obfuscation. What's interesting is that the way it is implemented quite significantly differs from the one in the packer. This indicates to me that either the packer was borrowed code or a big distributed team is working on different parts of the malware at the same time. 
 
 As the payload is quite extensive, it would serve us well to automate the deobfuscation of the hashes. Looking at the way the deobfuscation is used we can identify that EAX is where the located function pointer is stored upon returning. Now it would be tempting to break at the start of the function and the end and correlate all the pushed hashes with the returned pointer values, but due to the fact that Conti spawns many threads you're gonna have a bad day with all the desynched output. Instead we make use of the 32bit nature of the malware and only hook the returns. At the return the pushed hash `DWORD` should still be in-tact on the stack and EAX should contain the actual pointer.
 
-#### x64dbg script <a name="x64dbg_script"></a>
+#### x64dbg Script <a name="x64dbg_script"></a>
 We use x64dbg for scripting this out, because it's incredibly easy to use and very performant. We don't have to consider ASLR or any of that, all we need is a breakpoint at the start of the payload after the packer stages. The approach proposed above looks like this:
 ```
 bc
 
-// returns of api lookup func
+// returns of API lookup func
 bp 0x405256
 bp 0x4052AF
 bp 0x4051E0
@@ -330,7 +330,7 @@ for i in range(0, len(api_list), 2):
 			idc.set_cmt(ea, api_list[i+1], 0)
 ```
 
-### Dead code <a name="dead_code"></a>
+### Dead Code <a name="dead_code"></a>
 The entire payload is littered with dead code insertions, making it very hard to follow the actual important data. Code such as the following takes in important data returned from previous malicious functions and appears to be doing calculations on it:
 
 ![508b9df1d720f12d7cf75e1cb979d821.png](./_resources/6a991e03c34143c2b722ba4c8233d6b1.png)
@@ -390,7 +390,7 @@ The encryption function starts by loading a statically inserted and readily avai
 
 After this it will start looping through directories looking for files to encrypt, but before I get to that I need to digress.
 
-### Asynchronous programming <a name="async"></a>
+### Asynchronous Programming <a name="async"></a>
 Before I get into the details of the file encryption I want to explain how Conti uses asycnchronous programming. Not only is it a fundamental part of the way it supplies data to both the local and network encryption routines, but also between internally spawned threads. As it's an absolute pain to statically comprehend the control flow, I think it's a good idea to at least write a bit about the technical details for future reference.
 
 Following normal functional programming practices, which most malware uses, you expect the rough flow of ransomware to be:
@@ -451,7 +451,7 @@ Skipping symbolic links, the `C:\` directory file and the `..` directory file. G
 Inside of these folders it will skip any `.dll`, `.lnk`, `.sys` and `.msi` file as well as files named `bootmgr`, `readme.txt`, or `CONTI_LOG.txt`. Everything else is encrypted.
 
 
-#### Encryption state <a name="enc_state"></a>
+#### Encryption State <a name="enc_state"></a>
 Before encryption starts Conti sets up an internal state that will later also be appended to the file its about to encrypt. The state is unique for each individual file looks as follows:
 
 ```
@@ -503,7 +503,7 @@ If the file extension matches one of the ~100 database storage file extensions i
 .sql
 .maw
 ```
-> Don't store your ida database on the same machine you're debugging the malware on ;)
+> Don't store your IDA database on the same machine you're debugging the malware on ;)
 
 If the file extension matches one of the ~20 disk image extensions it will set `magic1` to `0x25` and `magic2` to `0x14`. A few examples include:
 ```
