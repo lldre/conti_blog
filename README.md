@@ -8,31 +8,18 @@ I hope this blog provides some key insights to researchers and incident response
 1. [Info](#info)
 2. [Packer](#packer)
 	* [Stage 1](#stage1)
-		* [Unpacking](#unpacking1)
 	* [Stage 2](#stage2)
-		* [Imports](#imports)
-		* [Dynamic Image Loading](#image_loader)
 	* [Stage 3](#stage3)
-		* [Cleaning up the mess](#cleaning_up)
-		* [Diving in](#diving_in)
-		* [Execution Path](#execution_path)
-3 [Payload](#payload)
+3. [Payload](#payload)
 	* [Deobfuscation](#deobfuscation)
 		* [Strings](#strings)
-			* [Heuristics](#heuristics)
-			* [Input Bytes](#input_bytes)
-			* [Executing the Obfuscator](#obfuscator)
-			* [Limitations of the script](#limitations)
 		* [API Hashes](#api_hashes)
-			* [x64dbg Script](#x64dbg_script)
 		* [Dead Code](#dead_code)
 	* [Mutex](#mutex)
 	* [Commandline](#cli)
 	* [Encryption Loop](#enc_loop)
 		* [Asynchronous Programming](#async)
 		* [Encryption](#enc)
-			* [Encryption State](#enc_state)
-			* [File Encryption](#f_enc)
 	* [Network](#network)
 		* [ARP](#arp)
 		* [Share Enumeration](#shares)
@@ -184,10 +171,15 @@ This marks the start of the analysis of the actual malicious ransomware componen
 ## Deobfuscation <a name="deobfuscation"></a>
 The first step to understanding the payload is getting rid of the multiple layers of obfuscation. Looking through the binary we can identify 3 methods of obfuscation:
 * A push of a byte + dword, then a call to a function followed by a call to return value of that function (API lookup by hash)
+
 ![f78e36c57463e5cc670e5ef1c6798778.png](./_resources/4b68c39603fc4b418f65d6ee66d6128c.png)
+
 * many single byte moves onto the stack followed by a function call (string obfuscation)
+
 ![fb6b0f3ff9bc4a4c19d643383d1d5c74.png](./_resources/567b903d9c27441491216a8cdf3a5a39.png)
+
 * Large amounts of dead code insertion
+
 ![3fd807c297477cc0ed10bbf33553f198.png](./_resources/c0f897c192554060b8fd96ffe2aa9b3e.png) 
 
 ### strings <a name="strings"></a>
@@ -438,7 +430,8 @@ The linked list will get filled later on with std::string objects containing the
 Similarly, later on, we will encounter some synchronization structs that employ the same method of blocking execution while waiting for the main thread to calculate the necessary data, but this time between internal worker threads. Add to this a layer of IOCP programming and obfuscated API calls (that you haven't yet fully deobfuscated, because every damn deobfuscation function is unique) and you have the perfect recipe for not knowing where the f*ck the data is coming from!
 
 ### Encryption <a name="enc"></a>
-Asside from the asynchronous providing of drive strings, the encryption loop itself is bog-standard. Looping over each directory and file using `FindFirstFile` and `FindNextFile` writing a ransom note to out to file containing the following text:
+Asside from the asynchronous providing of drive strings, the encryption loop itself is bog-standard. Looping over each directory and file using `FindFirstFile` and `FindNextFile` writing a ransom note out to file containing the following text:
+
 ![afec6649211b3366e8ef65bbd2c70c2a.png](./_resources/9f4bc5bf28cd437b9a41f4a1c72330b4.png)
 
 Skipping symbolic links, the `C:\` directory file and the `..` directory file. Going through the following list of excluded folders:
