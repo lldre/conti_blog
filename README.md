@@ -209,7 +209,6 @@ Looking through a lot of the byte pushes we can tell most strings start off with
 
 The most consistent way is identifying the stack offset that gets loaded into `ecx` as this marks the start of the string. From there we can load all bytes that got moved to a stack address until we reach either the function call or the start of the inline function:
 
-[TODO: improve this idapython as it doesn't reflect the text]
 
 ```python
 def harvest(start, end):
@@ -265,11 +264,11 @@ def emulate_func(ea, b):
 ```
 
 
-The entire script for the unique function based deobfuscation can be found (here)[TODO INSERT LINK TO SCRIPT HERE]
+The entire script for the unique function based deobfuscation can be found (here)[https://github.com/lldre/conti_blog/blob/master/scripts/conti_function_string_deobfuscation.py]
 
-The script for the inline version can be found (here)[TODO INSERT LINK TO SCRIPT HERE]
+The script for the inline version can be found (here)[https://github.com/lldre/conti_blog/blob/master/scripts/conti_inlined_string_deobfuscation.py]
 
-For a complete overview of the strings I was able to dump see **Appendix A** [TODO: insert link to appendix A here.
+For a complete overview of the strings I was able to dump see [Appendix A](#appendix_a).
 
 
 ### API hashes <a name="api_hashes"></a>
@@ -302,7 +301,7 @@ jmp LOOP
 
 Sadly I was unable to find a way to extract the names for each pointer automatically. `x64dbg` does have this knowledge when you look in the debugger, but no API to access the information. Maybe `MrExodia` can shed a light on how you could achieve looking up symbolnames for pointers from a script. For now we can quickly sort and weed out each unique entry using your favorite tool. From there we can manually lookup the symbolname for each pointer in the debugger.
 
-The results for this particular version of the binary can be found in **Appendix B** [TODO: insert hotlink]. Here's a little script you can use to lookup said hashes and insert the corresponding name back into IDA:
+The results for this particular version of the binary can be found in [Appendix B](#appendix_b). Here's a little script you can use to lookup said hashes and insert the corresponding name back into IDA:
 
 ```python
 import idc
@@ -596,7 +595,7 @@ for copy in IWbemServices::ExecQuery("WQL", "SELECT * FROM Win32_ShadowCopy", ..
 Conti's code, while not particularly ground-breaking, is incredibly destructive when used in a targeted attack. When used by an operator during an attack it no longer has to consider AV or communicating with a c2c server. Pair that with the ability to guide the ransomware using command-line arguments and give the operator output through logging, it is a piece of kit that shouldn't be underestimated.
 
 
-If you are dealing with a ransomware attack in which this version was involved and still have questions after reading this blog, feel free to reach out (here) [TODO: insert link to contact page]
+If you are dealing with a ransomware attack in which this version was involved and still have questions after reading this blog, feel free to reach out [here]({{<ref "/contact">}}).
 
 
 # Appendix <a name="appendix"></a>
