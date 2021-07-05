@@ -122,6 +122,7 @@ As we were able to dump the embedded pe file, we continue our analysis in IDA. T
 After properly loading the binary we're left with a fairly messy binary with no real indicators of what's going on. We get no imports, exports or strings except for these 2 (an indicator that we're looking at the fairly new Conti v3 rather than the old Conti v2):
 
 ![918eccd12fa622cc20a03aa2793e4409.png](./_resources/9003e8e793664f5f98ddf246e98a7637.png)
+
 and
 
 ![37f6a1c50c4dc2f0420e324489ce89d7.png](./_resources/6f9a279d17ce4258899b70025c822a97.png)
@@ -264,9 +265,9 @@ def emulate_func(ea, b):
 ```
 
 
-The entire script for the unique function based deobfuscation can be found (here)[https://github.com/lldre/conti_blog/blob/master/scripts/conti_function_string_deobfuscation.py]
+The entire script for the unique function based deobfuscation can be found [here](https://github.com/lldre/conti_blog/blob/master/scripts/conti_function_string_deobfuscation.py)
 
-The script for the inline version can be found (here)[https://github.com/lldre/conti_blog/blob/master/scripts/conti_inlined_string_deobfuscation.py]
+The script for the inline version can be found [here](https://github.com/lldre/conti_blog/blob/master/scripts/conti_inlined_string_deobfuscation.py)
 
 For a complete overview of the strings I was able to dump see [Appendix A](#appendix_a).
 
