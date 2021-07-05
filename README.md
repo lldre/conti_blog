@@ -1,6 +1,6 @@
 After reading about a devestating attack on the Irish Health Services (article [here](https://www.irishtimes.com/news/health/cyberattack-on-hse-scale-of-damage-on-systems-will-not-be-known-for-days-1.4565621)), I decided to take a deeper look at what makes the Conti ransomware so devestating. The malware, that some consider to be the [successor](https://www.bleepingcomputer.com/news/security/ryuk-successor-conti-ransomware-releases-data-leak-site/) to the ryuk ransomware has been wreaking havoc on organisations over the last year, infecting nearly 200 companies. The ransomware is a classic example of a Ransomware-as-a-Service (RaaS) employing highly skilled operators to break into big big company networks and execute the payload in exchange for a share of the profit. 
 
-Some research has been done into Conti such as [this detailed write-up](https://blogs.vmware.com/security/2020/07/tau-threat-discovery-conti-ransomware.html) by the folks over at the Carbon Black Threat Analysis Unit (TAU). However, the sample they analysed and the sample under analysis in this blog differ significantly in a few places, indicating we might be dealing with an updated version. 
+Some research has been done into Conti such as [this detailed write-up](https://blogs.vmware.com/security/2020/07/tau-threat-discovery-conti-ransomware.html) by the folks over at theCarbon Black Threat Analysis Unit (TAU). However, the sample they analysed and the sample under analysis in this blog differ significantly in a few places, indicating we might be dealing with an updated version. 
 
 I hope this blog provides some key insights to researchers and incident response teams that encounter this version of Conti.
 
@@ -193,8 +193,6 @@ As each function is unique and there's also a lot of inlined versions, it's goin
 #### Heuristics <a name="heuristics"></a>
 While each string decryption function is unique, they're still very similar in structure. We can find 90%~ of them using a few well-made byte search strings with wildcards. Copying the opcodes of a few of these functions into a text editor we get the following:
 
-[TODO: fix this, as the picture is for function string decrypt, but the proposed byte search strings are for inline decrypt]
-
 ![f2b451c100895d3b8eaec543d3d77691.png](./_resources/39e7f75b2fa948249b70f52d57ccc830.png)
 
 Using this method we can identify a few solid binary search strings such as the following:
@@ -215,8 +213,7 @@ The most consistent way is identifying the stack offset that gets loaded into `e
 
 ```python
 def harvest(start, end):
-	# We need to have 1 0x00 at the start for this algo
-	b = bytearray([0x00])
+	b = bytearray()
 	insn = ida_ua.insn_t()
 
 	while start != end:
@@ -241,27 +238,30 @@ To emulate each function we need to take the following steps:
 * Get the output
 
 Here's my implementation:
-[TODO: also look at this idapython and tidy it up]
 ```python
-def emulate_func(ea, input):
+def emulate_func(ea, b):
 	eh = flare_emu.EmuHelper()
-	in_addr = eh.loadBytes(input)
+	ret = eh.loadBytes(b)
 
-	# Set ecx to point to the obfuscated string bytes
-	eh.emulateRange(ea, registers = {"ecx":in_addr}, hookApis=False)
+	eh.emulateRange(ea, registers = {"ecx":ret}, hookApis=False)
 
-	# Print the deobfuscated string
-	print(eh.getEmuString(in_addr+1).decode())
-	
-	# In about 50% of the cases we're dealing with a wide-char string, so we strip the 0s and try to print again
-	bb = bytearray()
-	for i, x in enumerate(eh.getEmuBytes(in_addr+1, len(input))):
-		if not (i & 1):
-			bb.append(x)
-	print(bb.decode())
+	emu_bytes = eh.getEmuBytes(ret+1, len(b))
 
-	# Set a repeatable comment on the function
-	ida_funcs.set_func_cmt(idaapi.get_func(ea), idc.get_func_cmt(ea, 1) + "\n" + eh.getEmuString(in_addr+1).decode() + "\n" + bb.decode(), 1)
+	# Check if unicode string or not
+	if emu_bytes[1] == 0x00:
+		bb = bytearray()
+		for i, x in enumerate(eh.getEmuBytes(ret, len(b))):
+			if (i & 1):
+				bb.append(x)
+		print(bb.decode())
+		string = bb.decode()
+	else:
+		print(eh.getEmuString(ret+1).decode())
+		string = eh.getEmuString(ret+1).decode()
+
+	# Set repeatable function comment with deobfuscated string
+	ida_funcs.set_func_cmt(idaapi.get_func(ea), idc.get_func_cmt(ea, 1) + "\n" + string, 1)
+
 ```
 
 
@@ -576,7 +576,7 @@ The full pseudocode for deletion is:
 IWbemLocator = CoCreateInstance(wbemprox_dll_clsid, 0, 1, IID_IWbemLocator_interface_clsid)
 
 if x64_system:
-
+	
 	IWbemContext = CoCreateInstance(fastprox_dll_clsid, 0, 1, IID_IWbemContext_interface_clsid)
 	IWbemContext::SetValue("_ProviderArchitecture", 0, 64)
 

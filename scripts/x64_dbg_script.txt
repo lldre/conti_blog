@@ -1,0 +1,18 @@
+bc
+
+// returns of api lookup func
+bp 0x405256
+bp 0x4052AF
+bp 0x4051E0
+bp 0x405197
+
+LOOP:
+run
+
+// save pushed hash DWORD and resolved fptr
+mov $hash, [esp+4]
+mov $addr, eax
+
+log "HASH: {$hash} | ADDR: {addr}"
+
+jmp LOOP
