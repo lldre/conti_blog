@@ -5,7 +5,7 @@
 
 After reading about a devestating attack on the Irish Health Services (article [here](https://www.irishtimes.com/news/health/cyberattack-on-hse-scale-of-damage-on-systems-will-not-be-known-for-days-1.4565621)), I decided to take a deeper look at what makes the Conti ransomware so devestating. The malware, that some consider to be the [successor](https://www.bleepingcomputer.com/news/security/ryuk-successor-conti-ransomware-releases-data-leak-site/) to the ryuk ransomware has been wreaking havoc on organisations over the last year, infecting nearly 200 companies. The ransomware is a classic example of a Ransomware-as-a-Service (RaaS) employing highly skilled operators to break into big big company networks and execute the payload in exchange for a share of the profit. 
 
-Some research has been done into Conti such as [this detailed write-up](https://blogs.vmware.com/security/2020/07/tau-threat-discovery-conti-ransomware.html) by the folks over at theCarbon Black Threat Analysis Unit (TAU). However, the sample they analysed and the sample under analysis in this blog differ significantly in a few places, indicating we might be dealing with an updated version. 
+Some research has been done into Conti such as [this detailed write-up](https://blogs.vmware.com/security/2020/07/tau-threat-discovery-conti-ransomware.html) by the folks over at the Carbon Black Threat Analysis Unit (TAU). However, the sample they analysed and the sample under analysis in this blog differ significantly in a few places, indicating we might be dealing with an updated version. 
 
 I hope this blog provides some key insights to researchers and incident response teams that encounter this version of Conti.
 
